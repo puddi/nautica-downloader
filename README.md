@@ -4,7 +4,7 @@ download files from nautica (ksm.dev)
 # Usage
 
 
-```
+```bash
 node nautica-downloader.js # download all songs
 node nautica-downloader.js --user [user id/slug] # download all songs uploaded by a given user
 node nautica-downloader.js --song [song id] # donwload a specific song
