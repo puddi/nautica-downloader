@@ -1,0 +1,21 @@
+{
+  "name": "nautica-downloader",
+  "version": "1.0.0",
+  "description": "downloads files from nautica",
+  "main": "nautica-downloader.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.4.13",
+    "axios": "^0.18.0",
+    "fs-extra": "^7.0.1",
+    "iconv-lite": "^0.4.24",
+    "minimist": "^1.2.0",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.24.0",
+    "rimraf": "^2.6.3"
+  }
+}
