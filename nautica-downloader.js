@@ -1,4 +1,4 @@
-const base = 'http://ksm.dev';
+const base = 'http://nautica.test';
 
 const axios = require('axios').create({
   baseURL: `${base}/app`
@@ -20,32 +20,47 @@ class NauticaDownloader {
 
   /**
    * Iterates through every song provided by Nautica since the last execution time and downloads them
+   * @param shouldContinue - default false. if true, will not short-circuit execution when 5 up to date songs are encountered
    */
-  async downloadAll() {
+  async downloadAll(shouldContinue) {
     console.log('Downloading all songs.');
-    // grab the last time this script was ran
-    const lastExecuted = this.getLastAllExecutionTime();
-    if (lastExecuted) {
-      console.log('Previous run found. Downloading all new songs since then');
-    }
 
     let response;
+    let consecutiveUpToDates = 0;
     AllDoLoop:
     do {
       // fetch the songs
       response = (await axios.get(response ? response.links.next : 'songs?sort=uploaded')).data;
       for (let i = 0; i < response.data.length; i++) {
         let song = response.data[i];
-        if (lastExecuted && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastExecuted) {
+        console.log('=====================');
+        console.log(`Song: ${song.title} - ${song.artist}`);
+
+        if (song.mojibake) {
+          console.log('Zip file is marked as producing mojibake. Skipping.');
+          continue;
+        }
+
+        let lastDownloaded = this.getWhenSongWasLastDownloaded(song.id);
+        if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
           // we're up to date! break out.
-          console.log('=====================');
-          console.log('Up to date!');
+          console.log('Already up to date! Skipping.');
+          this.setWhenSongWasLastDownloaded(song.id);
+          if (shouldContinue || consecutiveUpToDates < 4) {
+            consecutiveUpToDates++;
+            continue;
+          }
+          console.log('Found five consecutive songs that were up to date. Stopping execution.');
+          console.log('To prevent this from happening, run with the --continue flag.');
           break AllDoLoop;
         }
 
-        console.log('=====================');
+        // if we reach here, that means we should reset the counter of consecutive up to dates
+        consecutiveUpToDates = 0;
+
         try {
-          await this.downloadSongToUserDirectory(song);          
+          await this.downloadSongToUserDirectory(song);
+          this.setWhenSongWasLastDownloaded(song.id);
         } catch (e) {
           console.log('Error encountered:');
           console.log(e);
@@ -53,39 +68,55 @@ class NauticaDownloader {
       }
     } while (response.links.next);
     console.log('=====================');
-    console.log('Finished execution. Setting last execution time...');
-    this.setLastAllExecutionTime();
     console.log('Done!');
   }
 
   /**
    * Iterates through every song for a user since the last execution time and downloads them
+   * @param userId - userId to download
+   * @param shouldContinue - default false. if true, will not short-circuit execution when 5 up to date songs are encountered
    */
-  async downloadUser(userId) {
-    console.log('Downloading a user\'s songs.');
+  async downloadUser(userId, shouldContinue) {
+    console.log(`Downloading ${userId}'s songs.`);
     // grab the last time this script was ran
-    const lastExecuted = this.getLastUserExecutionTime(userId);
-    if (lastExecuted) {
-      console.log('Previous run found. Downloading all new songs since then');
-    }
 
     let response;
+    let consecutiveUpToDates = 0;
     UserDoLoop:
     do {
       // fetch the songs
       response = (await axios.get(response ? response.links.next : `users/${userId}/songs?sort=uploaded`)).data;
       for (let i = 0; i < response.data.length; i++) {
         let song = response.data[i];
-        if (lastExecuted && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastExecuted) {
+        console.log('=====================');
+        console.log(`Song: ${song.title} - ${song.artist}`);
+
+        if (song.mojibake) {
+          console.log('Zip file is marked as producing mojibake. Skipping.');
+          continue;
+        }
+
+        let lastDownloaded = this.getWhenSongWasLastDownloaded(song.id);
+        if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
           // we're up to date! break out.
-          console.log('=====================');
-          console.log('Up to date!');
+          console.log('Already up to date! Skipping.');
+          this.setWhenSongWasLastDownloaded(song.id);
+
+          if (shouldContinue || consecutiveUpToDates < 4) {
+            consecutiveUpToDates++;
+            continue;
+          }
+          console.log('Found five consecutive songs that were up to date. Stopping execution.');
+          console.log('To prevent this from happening, run with the --continue flag.');
           break UserDoLoop;
         }
 
-        console.log('=====================');
+        // if we reach here, that means we should reset the counter of consecutive up to dates
+        consecutiveUpToDates = 0;
+
         try {
           await this.downloadSongToUserDirectory(song);
+          this.setWhenSongWasLastDownloaded(song.id);
         } catch (e) {
           console.log('Error encountered:');
           console.log(e);
@@ -93,21 +124,38 @@ class NauticaDownloader {
       }
     } while (response.links.next);
     console.log('=====================');
-    console.log('Finished execution. Setting last execution time...');
-    this.setLastUserExecutionTime(userId);
     console.log('Done!');
   }
 
   /**
    * Downloads a specific song
+   * @param songId - id of the song to download
    */
   async downloadSong(songId) {
-    console.log('Downloading a specific song.');
+    console.log(`Downloading song ${songId}.`);
 
     try {
       const song = (await axios.get(`songs/${songId}`)).data.data;
-      await this.downloadSongToUserDirectory(song);
-      console.log('Finished!');
+
+      console.log('=====================');
+      console.log(`Song: ${song.title} - ${song.artist}`);
+
+      if (song.mojibake) {
+        console.log('Zip file is marked as producing mojibake. Skipping.');
+        continue;
+      }
+
+      let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
+      if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
+        // we're up to date! break out.
+        console.log('Already up to date!');
+      } else {
+        await this.downloadSongToUserDirectory(song);
+      }
+
+      this.setWhenSongWasLastDownloaded(songId);
+      console.log('=====================');
+      console.log('Done!');
     } catch (e) {
       console.log('Error encountered:');
       console.log(e);
@@ -119,12 +167,6 @@ class NauticaDownloader {
    */
   async downloadSongToUserDirectory(songObj) {
     return new Promise(async (resolve, reject) => {
-      if (songObj.mojibake) {
-        console.log(`Skipping ${songObj.title} - ${songObj.artist}: it's internally flagged to produce mojibake`);
-        resolve();
-        return;
-      }
-
       this.createUserDirectory(songObj.user);
 
       const userDirectoryName = this.getUserDirectoryName(songObj.user);
@@ -247,54 +289,31 @@ class NauticaDownloader {
   }
 
   /**
-   * Gets the last time this class fetched all the songs.
-   * Returns null if the script was never ran before.
-   */
-  getLastAllExecutionTime() {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({}), 'utf8');
-      return null;
-    }
-
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    return meta.lastAllExecuted;
-  }
-
-  /**
-   * Sets the last time this class fetched all the songs.
-   */
-  setLastAllExecutionTime() {
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    meta.lastAllExecuted = moment().unix();
-    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
-  }
-
-  /**
    * Gets the last time this class fetched all the songs for a user.
    * Returns null if the script was never ran before.
    */
-  getLastUserExecutionTime(userId) {
+  getWhenSongWasLastDownloaded(songId) {
     if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
       fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
-        lastUserExecuted: {}
+        songDownloadTimes: {}
       }), 'utf8');
       return null;
     }
 
     const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    return meta.lastUserExecuted[userId];
+    return meta.songDownloadTimes[songId];
   }
 
   /**
    * Sets the last time this class fetched all the songs for a user.
    */
-  setLastUserExecutionTime(userId) {
+  setWhenSongWasLastDownloaded(songId) {
     const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    if (!meta.lastUserExecuted) {
-      meta.lastUserExecuted = {}
+    if (!meta.songDownloadTimes) {
+      meta.songDownloadTimes = {}
     }
 
-    meta.lastUserExecuted[userId] = moment().unix();
+    meta.songDownloadTimes[songId] = moment().unix();
     fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
   }
 
@@ -324,8 +343,8 @@ const args = minimist(process.argv.slice(2));
 if (args.song) {
   downloader.downloadSong(args.song);
 } else if (args.user) {
-  downloader.downloadUser(args.user);
+  downloader.downloadUser(args.user, !!args.continue);
 } else {
-  downloader.downloadAll();
+  downloader.downloadAll(!!args.continue);
 }
 
