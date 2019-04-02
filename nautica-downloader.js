@@ -142,15 +142,14 @@ class NauticaDownloader {
 
       if (song.mojibake) {
         console.log('Zip file is marked as producing mojibake. Skipping.');
-        continue;
-      }
-
-      let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
-      if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
-        // we're up to date! break out.
-        console.log('Already up to date!');
       } else {
-        await this.downloadSongToUserDirectory(song);
+        let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
+        if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
+          // we're up to date! break out.
+          console.log('Already up to date!');
+        } else {
+          await this.downloadSongToUserDirectory(song);
+        }
       }
 
       this.setWhenSongWasLastDownloaded(songId);
