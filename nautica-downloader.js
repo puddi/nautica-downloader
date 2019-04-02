@@ -1,4 +1,4 @@
-const base = 'http://nautica.test';
+const base = 'https://ksm.dev';
 
 const axios = require('axios').create({
   baseURL: `${base}/app`
