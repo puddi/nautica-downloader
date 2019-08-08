@@ -274,7 +274,7 @@ class NauticaDownloader {
         meta.users = {};
       }
 
-      const userDirectoryName = this.cleanName(user.name);  
+      const userDirectoryName = this.cleanName(user.name.replace("*",""));  
       meta.users[user.id] = userDirectoryName;
       fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
       return userDirectoryName;
