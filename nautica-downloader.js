@@ -1,4 +1,5 @@
 const base = 'https://ksm.dev';
+const onWindows = true;
 
 const axios = require('axios').create({
   baseURL: `${base}/app`
@@ -10,12 +11,13 @@ const path = require('path');
 const moment = require('moment');
 const rimraf = require('rimraf');
 const iconv = require('iconv-lite');
-const AdmZip = require('adm-zip');
+const child_process = require('child_process');
 const mkdirp = require('mkdirp');
 
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
+    this.copyUnar();
   }
 
   /**
@@ -36,10 +38,6 @@ class NauticaDownloader {
         console.log('=====================');
         console.log(`Song: ${song.title} - ${song.artist}`);
 
-        if (song.mojibake) {
-          console.log('Zip file is marked as producing mojibake. Skipping.');
-          continue;
-        }
 
         let lastDownloaded = this.getWhenSongWasLastDownloaded(song.id);
         if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
@@ -64,6 +62,7 @@ class NauticaDownloader {
         } catch (e) {
           console.log('Error encountered:');
           console.log(e);
+          return;
         }
       }
     } while (response.links.next);
@@ -90,11 +89,6 @@ class NauticaDownloader {
         let song = response.data[i];
         console.log('=====================');
         console.log(`Song: ${song.title} - ${song.artist}`);
-
-        if (song.mojibake) {
-          console.log('Zip file is marked as producing mojibake. Skipping.');
-          continue;
-        }
 
         let lastDownloaded = this.getWhenSongWasLastDownloaded(song.id);
         if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
@@ -140,16 +134,12 @@ class NauticaDownloader {
       console.log('=====================');
       console.log(`Song: ${song.title} - ${song.artist}`);
 
-      if (song.mojibake) {
-        console.log('Zip file is marked as producing mojibake. Skipping.');
+      let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
+      if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
+        // we're up to date! break out.
+        console.log('Already up to date!');
       } else {
-        let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
-        if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
-          // we're up to date! break out.
-          console.log('Already up to date!');
-        } else {
-          await this.downloadSongToUserDirectory(song);
-        }
+        await this.downloadSongToUserDirectory(song);
       }
 
       this.setWhenSongWasLastDownloaded(songId);
@@ -170,12 +160,6 @@ class NauticaDownloader {
 
       const userDirectoryName = this.getUserDirectoryName(songObj.user);
 
-      if (fs.existsSync(path.resolve(`./nautica/${userDirectoryName}/${songObj.title} - ${songObj.artist}`))) {
-        console.log(`${songObj.title} - ${songObj.artist} already exists. Deleting to re-download.`);
-
-        rimraf.sync(path.resolve(`./nautica/${userDirectoryName}/${songObj.title} - ${songObj.artist}`));
-      }
-
       const songZipName = this.cleanName(`${songObj.id}.zip`);
 
       console.log(`Downloading ${songObj.title} - ${songObj.artist}`);
@@ -193,43 +177,25 @@ class NauticaDownloader {
         return;
       }
 
-      fs.writeFileSync(path.resolve(`./nautica/${userDirectoryName}/${songZipName}`), data)
+      fs.writeFileSync(path.resolve(`./nautica/${songZipName}`), data)
 
       console.log(`Finished downloading ${songObj.title} - ${songObj.artist}. Extracting...`);
 
-      fs.mkdirSync(path.resolve(`./nautica/${userDirectoryName}/${songObj.id}`));
-
       try {
-        this.extractSync(
-          path.resolve(`./nautica/${userDirectoryName}/${songZipName}`),
-          path.resolve(`./nautica/${userDirectoryName}/${songObj.id}`)
+        await this.extract(
+          path.resolve(`./nautica/${songZipName}`),
+          path.resolve(`./nautica/${userDirectoryName}`)
         );
       } catch (e) {
         console.log(e);
         console.log(`Error encountered when extracting ${songZipName}`);
-        fs.removeSync(path.resolve(`./nautica/${userDirectoryName}/${songObj.id}`));
         resolve();
         return;
       }
 
       console.log(`Finished extracting ${songObj.title} - ${songObj.artist}. Deleting old zip and cleaning up...`);
 
-      const dirFiles = fs.readdirSync(path.resolve(`./nautica/${userDirectoryName}/${songObj.id}`));
-      
-      // shift zips of directories up one level
-      if (dirFiles.filter(x => x.endsWith('.ksh')).length === 0) {
-        for (let i = 0; i < dirFiles.length; i++) {
-          if (dirFiles[i] !== '__MACOSX') {
-            fs.moveSync(
-              path.resolve(`./nautica/${userDirectoryName}/${songObj.id}/${dirFiles[i]}`),
-              path.resolve(`./nautica/${userDirectoryName}/${dirFiles[i]}`)
-            );
-          }
-        }
-        fs.removeSync(`./nautica/${userDirectoryName}/${songObj.id}`);
-      }
-
-      fs.unlinkSync(path.resolve(`./nautica/${userDirectoryName}/${songZipName}`));
+      fs.unlinkSync(path.resolve(`./nautica/${songZipName}`));
 
       console.log(`Deleted old zip. Finished download!`);
 
@@ -242,7 +208,32 @@ class NauticaDownloader {
    */
   createNauticaDirectory() {
     if (!fs.existsSync(path.resolve('./nautica'))) {
+      console.log('Creating nautica directory...');
       fs.mkdirSync(path.resolve('./nautica'));
+    }
+  }
+
+  /**
+   * Copies the Unar file.
+   */
+  copyUnar() {
+    if (onWindows) {
+      if (!fs.existsSync(path.resolve('./unar.exe'))) {
+        console.log('Writing files for extracting zips...');
+        fs.writeFileSync(path.resolve('./unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
+        fs.chmodSync(path.resolve('./unar.exe'), "755");
+      }
+
+      if (!fs.existsSync(path.resolve('./Foundation.1.0.dll'))) {
+        fs.writeFileSync(path.resolve('./Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));
+        fs.chmodSync(path.resolve('./Foundation.1.0.dll'), "755");
+      }
+    } else {
+      if (!fs.existsSync(path.resolve('./unar'))) {
+        console.log('Writing files for extracting zips...');
+        fs.writeFileSync(path.resolve('./unar'), fs.readFileSync(path.join(__dirname, './assets/unar')));
+        fs.chmodSync(path.resolve('./unar'), "755");
+      }
     }
   }
 
@@ -284,7 +275,7 @@ class NauticaDownloader {
   }
 
   cleanName(name) {
-    return name.replace("/", "-").replace(/^\./, '-');
+    return name.replace("/", "-").replace(/^[\.\*]/, '-').replace("\"", "-").replace(/[\*\.]$/, '-');
   }
 
   /**
@@ -307,6 +298,11 @@ class NauticaDownloader {
    * Sets the last time this class fetched all the songs for a user.
    */
   setWhenSongWasLastDownloaded(songId) {
+    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
+      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
+        songDownloadTimes: {}
+      }), 'utf8');
+    }
     const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
     if (!meta.songDownloadTimes) {
       meta.songDownloadTimes = {}
@@ -319,18 +315,23 @@ class NauticaDownloader {
   /**
    * Extracts the contents of a zip on disk to a path w/ sjis encoding
    */
-  extractSync(zipFilename, basePath) {
-    const zip = new AdmZip(zipFilename);
-    const zipEntries = zip.getEntries();
+  extract(zipFilename, basePath) {
+    return new Promise((resolve, reject) => {
+      const unarPath = onWindows ? path.resolve('./unar.exe') : path.resolve('./unar');
 
-    zipEntries.forEach(entry => {
-      var pathName = iconv.decode(entry.rawEntryName, 'sjis');
-      if (entry.isDirectory) {
-        fs.mkdirSync(path.join(basePath, pathName));
-      } else {
-        mkdirp.sync(path.resolve(path.join(basePath, pathName), '..'));
-        fs.writeFileSync(path.join(basePath, pathName), zip.readFile(entry));
-      }
+      child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
+        cwd: basePath,
+        windowsHide: true,
+      }, (error, stdout, stderr) => {
+        console.log(stdout);
+        if (error) {
+          console.log('Error encountered:');
+          console.log(stderr);
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 }

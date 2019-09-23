@@ -9,13 +9,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "adm-zip": "^0.4.13",
     "axios": "^0.18.0",
+    "chardet": "^0.7.0",
     "fs-extra": "^7.0.1",
     "iconv-lite": "^0.4.24",
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "moment": "^2.24.0",
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.6.3",
+    "unpack-all": "0.0.4"
   }
 }
