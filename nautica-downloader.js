@@ -270,7 +270,11 @@ class NauticaDownloader {
   }
 
   cleanName(name) {
-    return name.replace("/", "-").replace(/^[\.\*]/, '-').replace("\"", "-").replace(/[\*\.]$/, '-');
+    const unixCleanedName = name.replace(/[/"]/g, "-").replace(/^[\.\*]/, '-').replace(/[\*\.]$/, '-');
+    if (!onWindows) {
+      return unixCleanedName;
+    }
+    return unixCleanedName.replace(/[<>:|?*\\]/g, "-");
   }
 
   /**
