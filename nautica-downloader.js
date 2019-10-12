@@ -17,7 +17,7 @@ const mkdirp = require('mkdirp');
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
-    this.copyUnar();
+    this.copyZipExtracter();
   }
 
   /**
@@ -216,17 +216,12 @@ class NauticaDownloader {
   /**
    * Copies the Unar file.
    */
-  copyUnar() {
+  copyZipExtracter() {
     if (onWindows) {
-      if (!fs.existsSync(path.resolve('./unar.exe'))) {
+      if (!fs.existsSync(path.resolve('./7za.exe'))) {
         console.log('Writing files for extracting zips...');
-        fs.writeFileSync(path.resolve('./unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
-        fs.chmodSync(path.resolve('./unar.exe'), "755");
-      }
-
-      if (!fs.existsSync(path.resolve('./Foundation.1.0.dll'))) {
-        fs.writeFileSync(path.resolve('./Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));
-        fs.chmodSync(path.resolve('./Foundation.1.0.dll'), "755");
+        fs.writeFileSync(path.resolve('./7za.exe'), fs.readFileSync(path.join(__dirname, './assets/7za.exe')));
+        fs.chmodSync(path.resolve('./7za.exe'), "755");
       }
     } else {
       if (!fs.existsSync(path.resolve('./unar'))) {
@@ -317,12 +312,7 @@ class NauticaDownloader {
    */
   extract(zipFilename, basePath) {
     return new Promise((resolve, reject) => {
-      const unarPath = onWindows ? path.resolve('./unar.exe') : path.resolve('./unar');
-
-      child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
-        cwd: basePath,
-        windowsHide: true,
-      }, (error, stdout, stderr) => {
+      const extractResultCallback = (error, stdout, stderr) => {
         console.log(stdout);
         if (error) {
           console.log('Error encountered:');
@@ -331,7 +321,21 @@ class NauticaDownloader {
         } else {
           resolve();
         }
-      });
+      }
+      
+      if (onWindows) {
+        const sevenZipPath = path.resolve('./7za.exe');
+        child_process.exec(`${sevenZipPath} e -o${basePath} -y ${zipFilename}`, {
+          cwd: basePath,
+          windowsHide: true,
+        }, extractResultCallback);
+      } else {
+        const unarPath = path.resolve('./unar');
+        child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
+          cwd: basePath,
+          windowsHide: true,
+        }, extractResultCallback);
+      }
     });
   }
 }
