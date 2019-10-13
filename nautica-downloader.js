@@ -88,7 +88,7 @@ class NauticaDownloader {
       for (let i = 0; i < response.data.length; i++) {
         let song = response.data[i];
         console.log('=====================');
-        console.log(`Song: ${song.title} - ${song.artist}`);
+        console.log(`Song: ${song.artist} - ${song.title}`);
 
         let lastDownloaded = this.getWhenSongWasLastDownloaded(song.id);
         if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
@@ -132,7 +132,7 @@ class NauticaDownloader {
       const song = (await axios.get(`songs/${songId}`)).data.data;
 
       console.log('=====================');
-      console.log(`Song: ${song.title} - ${song.artist}`);
+      console.log(`Song: ${song.artist} - ${song.title}`);
 
       let lastDownloaded = this.getWhenSongWasLastDownloaded(songId);
       if (lastDownloaded && moment(song.uploaded_at).subtract(7, 'hours').unix() <= lastDownloaded) {
@@ -160,9 +160,10 @@ class NauticaDownloader {
 
       const userDirectoryName = this.getUserDirectoryName(songObj.user);
 
+      const song = this.cleanName(`${songObj.artist} - ${songObj.title}`);
       const songZipName = this.cleanName(`${songObj.id}.zip`);
 
-      console.log(`Downloading ${songObj.title} - ${songObj.artist}`);
+      console.log(`Downloading ${song}`);
 
       let data;
       try {
@@ -179,12 +180,16 @@ class NauticaDownloader {
 
       fs.writeFileSync(path.resolve(`./nautica/${songZipName}`), data)
 
-      console.log(`Finished downloading ${songObj.title} - ${songObj.artist}. Extracting...`);
+      console.log(`Finished downloading ${song}. Extracting...`);
 
+      const songFolder = path.resolve(`./nautica/${userDirectoryName}/${song}`);
+      if (!fs.existsSync(songFolder))
+        fs.mkdirSync(songFolder);
+      
       try {
         await this.extract(
           path.resolve(`./nautica/${songZipName}`),
-          path.resolve(`./nautica/${userDirectoryName}`)
+          path.resolve(songFolder)
         );
       } catch (e) {
         console.log(e);
@@ -193,11 +198,13 @@ class NauticaDownloader {
         return;
       }
 
-      console.log(`Finished extracting ${songObj.title} - ${songObj.artist}. Deleting old zip and cleaning up...`);
+      console.log(`Finished extracting ${song}. Deleting old zip and cleaning up...`);
 
       fs.unlinkSync(path.resolve(`./nautica/${songZipName}`));
 
       console.log(`Deleted old zip. Finished download!`);
+
+      await this.flattenSongFolder(songFolder);
 
       resolve();
     });
@@ -340,6 +347,34 @@ class NauticaDownloader {
           windowsHide: true,
         }, extractResultCallback);
       }
+    });
+  }
+
+  flattenSongFolder(folder) {
+    const dirEntries = fs.readdirSync(folder, { withFileTypes: true });
+    if (dirEntries.length !== 1 || !dirEntries[0].isDirectory) {
+      return;
+    }
+    return new Promise(resolve => {
+      const nestedSongFolder = path.resolve(`${folder}/${dirEntries[0].name}`);
+      const nestedDirEntries = fs.readdirSync(nestedSongFolder);
+      Promise.all(
+        nestedDirEntries.map(fileName => new Promise((resolve2, reject2) =>
+          fs.move(
+            path.resolve(`${nestedSongFolder}/${fileName}`),
+            path.resolve(`${folder}/${fileName}`),
+            err => err ? reject2(err) : resolve2()
+          )
+        ))
+      )
+      .then(() => {
+        fs.rmdirSync(nestedSongFolder);
+        resolve();
+      })
+      .catch(err => {
+        console.log(`Error while flattening ${folder}:`, err);
+        resolve();
+      });
     });
   }
 }
