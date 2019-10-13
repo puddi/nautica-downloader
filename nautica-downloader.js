@@ -202,7 +202,7 @@ class NauticaDownloader {
 
       console.log(`Deleted old zip. Finished download!`);
 
-      await this.flattenSongFolder(songFolder);
+      await this.flattenSongFolder(songFolder, songObj.id);
 
       resolve();
     });
@@ -354,13 +354,18 @@ class NauticaDownloader {
     });
   }
 
-  flattenSongFolder(folder) {
+  flattenSongFolder(folder, songId) {
     const dirEntries = fs.readdirSync(folder, { withFileTypes: true });
     if (dirEntries.length !== 1 || !dirEntries[0].isDirectory) {
       return;
     }
     return new Promise(resolve => {
-      const nestedSongFolder = path.resolve(`${folder}/${dirEntries[0].name}`);
+      // Measure to prevent collisions when moving
+      const nestedSongFolder = path.resolve(`${folder}/${songId}`);
+      fs.renameSync(
+        path.resolve(`${folder}/${dirEntries[0].name}`),
+        nestedSongFolder
+      );
       const nestedDirEntries = fs.readdirSync(nestedSongFolder);
       Promise.all(
         nestedDirEntries.map(fileName => new Promise((resolve2, reject2) =>
@@ -377,7 +382,7 @@ class NauticaDownloader {
         resolve();
       })
       .catch(err => {
-        this.logError(`Error while flattening ${folder}`, err);
+        this.logError(`Error while flattening ${folder} (song id: ${songId})`, err)
         resolve();
       });
     });
@@ -394,8 +399,6 @@ class NauticaDownloader {
 downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
-
-args.song = '3b5914b0-bffc-11e9-ae01-8b5a36a9aad8';
 
 if (args.song) {
   downloader.downloadSong(args.song);
