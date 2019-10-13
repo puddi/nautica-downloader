@@ -14,6 +14,8 @@ const iconv = require('iconv-lite');
 const child_process = require('child_process');
 const mkdirp = require('mkdirp');
 
+const ERROR_LOG = path.resolve('error.log');
+
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
@@ -60,8 +62,7 @@ class NauticaDownloader {
           await this.downloadSongToUserDirectory(song);
           this.setWhenSongWasLastDownloaded(song.id);
         } catch (e) {
-          console.log('Error encountered:');
-          console.log(e);
+          this.logError('Error encountered:', e);
           return;
         }
       }
@@ -112,8 +113,7 @@ class NauticaDownloader {
           await this.downloadSongToUserDirectory(song);
           this.setWhenSongWasLastDownloaded(song.id);
         } catch (e) {
-          console.log('Error encountered:');
-          console.log(e);
+          this.logError('Error encountered:', e);
         }
       }
     } while (response.links.next);
@@ -146,8 +146,7 @@ class NauticaDownloader {
       console.log('=====================');
       console.log('Done!');
     } catch (e) {
-      console.log('Error encountered:');
-      console.log(e);
+      this.logError('Error encountered:', e);
     }
   }
 
@@ -172,8 +171,7 @@ class NauticaDownloader {
           responseType: 'arraybuffer'
         })).data;
       } catch (e) {
-        console.log('Error encountered when downloading the zip file');
-        console.log(e);
+        this.logError('Error encountered when downloading the zip file', e);
         resolve();
         return;
       }
@@ -192,8 +190,7 @@ class NauticaDownloader {
           path.resolve(songFolder)
         );
       } catch (e) {
-        console.log(e);
-        console.log(`Error encountered when extracting ${songZipName}`);
+        this.logError(`Error encountered when extracting ${songZipName} to ${songFolder}`, e);
         resolve();
         return;
       }
@@ -326,8 +323,7 @@ class NauticaDownloader {
       const extractResultCallback = (error, stdout, stderr) => {
         console.log(stdout);
         if (error) {
-          console.log('Error encountered:');
-          console.log(stderr);
+          this.logError('Error encountered:', stderr);
           reject(error);
         } else {
           resolve();
@@ -373,16 +369,28 @@ class NauticaDownloader {
         resolve();
       })
       .catch(err => {
-        console.log(`Error while flattening ${folder}:`, err);
+        this.logError(`Error while flattening ${folder}`, err);
         resolve();
       });
     });
+  }
+
+  logError(message, error) {
+    console.error(message);
+    console.error(error);
+    fs.appendFileSync(ERROR_LOG, '\r\n\r\n' + message, 'utf-8');
+    fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
 }
 
 downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
+
+if (!fs.existsSync(ERROR_LOG))
+  fs.createFileSync(ERROR_LOG);
+else
+  fs.truncateSync(ERROR_LOG);
 
 if (args.song) {
   downloader.downloadSong(args.song);
