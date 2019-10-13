@@ -19,6 +19,7 @@ const ERROR_LOG = path.resolve('error.log');
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
+    this.createErrorLog();
     this.copyZipExtracter();
   }
 
@@ -217,6 +218,13 @@ class NauticaDownloader {
     }
   }
 
+  createErrorLog() {
+    if (!fs.existsSync(ERROR_LOG))
+      fs.createFileSync(ERROR_LOG);
+    else
+      fs.truncateSync(ERROR_LOG);
+  }
+
   /**
    * Copies the Unar file.
    */
@@ -386,11 +394,6 @@ class NauticaDownloader {
 downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
-
-if (!fs.existsSync(ERROR_LOG))
-  fs.createFileSync(ERROR_LOG);
-else
-  fs.truncateSync(ERROR_LOG);
 
 if (args.song) {
   downloader.downloadSong(args.song);
