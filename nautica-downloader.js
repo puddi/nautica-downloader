@@ -363,6 +363,7 @@ class NauticaDownloader {
           fs.move(
             path.resolve(`${nestedSongFolder}/${fileName}`),
             path.resolve(`${folder}/${fileName}`),
+            { overwrite: true },
             err => err ? reject2(err) : resolve2()
           )
         ))
