@@ -329,7 +329,7 @@ class NauticaDownloader {
       
       if (onWindows) {
         const sevenZipPath = path.resolve('./7za.exe');
-        child_process.exec(`${sevenZipPath} e -o${basePath} -y ${zipFilename}`, {
+        child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
           cwd: basePath,
           windowsHide: true,
         }, extractResultCallback);
@@ -355,4 +355,3 @@ if (args.song) {
 } else {
   downloader.downloadAll(!!args.continue);
 }
-
