@@ -282,7 +282,7 @@ class NauticaDownloader {
   }
 
   cleanName(name) {
-    const unixCleanedName = name.replace(/[/"]/g, "-").replace(/^[\.\*]/, '-').replace(/[\*\.]$/, '-');
+    const unixCleanedName = name.replace(/[/"]/g, "-").replace(/^[\.\* ]/, '-').replace(/[\*\. ]$/, '-');
     if (!onWindows) {
       return unixCleanedName;
     }
@@ -394,6 +394,8 @@ class NauticaDownloader {
 downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
+
+args.song = '3b5914b0-bffc-11e9-ae01-8b5a36a9aad8';
 
 if (args.song) {
   downloader.downloadSong(args.song);
