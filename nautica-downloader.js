@@ -14,7 +14,7 @@ const iconv = require('iconv-lite');
 const child_process = require('child_process');
 const mkdirp = require('mkdirp');
 
-const ERROR_LOG = path.resolve('error.log');
+const ERROR_LOG = path.resolve('nautica/error.log');
 
 class NauticaDownloader {
   constructor() {
