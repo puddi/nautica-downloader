@@ -275,7 +275,7 @@ class NauticaDownloader {
   }
 
   cleanName(name) {
-    return name.replace("/", "-").replace(/^[\.\*]/, '-').replace("\"", "-").replace(/[\*\.]$/, '-');
+    return name.replace(/[:"?<>|*\/\\]/g, '-');
   }
 
   /**
