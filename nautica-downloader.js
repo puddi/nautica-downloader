@@ -235,6 +235,14 @@ class NauticaDownloader {
         fs.writeFileSync(path.resolve('./7za.exe'), fs.readFileSync(path.join(__dirname, './assets/7za.exe')));
         fs.chmodSync(path.resolve('./7za.exe'), "755");
       }
+      if (!fs.existsSync(path.resolve('./unar.exe'))) {
+        fs.writeFileSync(path.resolve('./unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
+        fs.chmodSync(path.resolve('./unar.exe'), "755");
+      }
+      if (!fs.existsSync(path.resolve('./Foundation.1.0.dll'))) {
+        fs.writeFileSync(path.resolve('./Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));	
+        fs.chmodSync(path.resolve('./Foundation.1.0.dll'), "755");	
+      }
     } else {
       if (!fs.existsSync(path.resolve('./unar'))) {
         console.log('Writing files for extracting zips...');
@@ -265,7 +273,7 @@ class NauticaDownloader {
 
     const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json'))); 
 
-    if (!meta.users || !meta.users[user.id]) { 
+    if (!meta.users || !meta.users[user.id]) {
       console.log('New user found, adding to list of users');
 
       if (!meta.users) {
@@ -337,15 +345,24 @@ class NauticaDownloader {
           resolve();
         }
       }
-      
+
+      let meta;
       if (onWindows) {
-        const sevenZipPath = path.resolve('./7za.exe');
-        child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
-          cwd: basePath,
-          windowsHide: true,
-        }, extractResultCallback);
+        meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+        if (!meta.windowsZipExtracter) {
+          meta.windowsZipExtracter = '7zip';
+          fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+        }
+      }
+      
+      if (onWindows && meta.windowsZipExtracter === '7zip') {
+          const sevenZipPath = path.resolve('./7za.exe');
+          child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
+            cwd: basePath,
+            windowsHide: true,
+          }, extractResultCallback);
       } else {
-        const unarPath = path.resolve('./unar');
+        const unarPath = onWindows ? path.resolve('./unar.exe') : path.resolve('./unar');
         child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
           cwd: basePath,
           windowsHide: true,
@@ -394,11 +411,35 @@ class NauticaDownloader {
     fs.appendFileSync(ERROR_LOG, '\r\n\r\n' + message, 'utf-8');
     fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
+
+  switchWindowsZipExtracter() {
+    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+
+    if (!meta.windowsZipExtracter) {
+      console.log('Please run the script normally first');
+      return;
+    }
+
+    if (meta.windowsZipExtracter === '7zip') {
+      meta.windowsZipExtracter = 'unar';
+      console.log('Now using unar for extracting files on windows');
+    } else {
+      meta.windowsZipExtracter = '7zip';
+      console.log('Now using 7zip for extracting files on windows');
+    }
+    
+    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+  }
 }
 
 downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
+
+if (args['switch-windows-zip-extracter']) {
+  downloader.switchWindowsZipExtracter();
+  return;
+}
 
 if (args.song) {
   downloader.downloadSong(args.song);
