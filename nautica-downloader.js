@@ -16,6 +16,10 @@ const mkdirp = require('mkdirp');
 
 const ERROR_LOG = path.resolve('nautica/error.log');
 
+// TODO: rename to extractOr
+// TODO: put exe crap in nautica folder
+// TODO: make methods for write to meta and read from meta
+
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
