@@ -31,4 +31,4 @@ If this happens, K-Shoot Mania will most likely throw a Error 12 when launching 
 
 ## Build and Release
 
-Assuming that you've installed pkg (`npm install -g pkg`), just run `pkg -t node10-win-x64 nautica-downloader.js`. 
+Assuming that you've installed pkg (`npm install -g pkg`), just run `npm run compile` (or `pkg -t node10-win-x64 nautica-downloader.js`).
