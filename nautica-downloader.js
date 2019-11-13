@@ -306,11 +306,7 @@ class NauticaDownloader {
    * Changes a string so that it won't cause OS-specific problems.
    */
   cleanName(name) {
-    const unixCleanedName = name.replace(/[/"]/g, "-").replace(/^[\.\* ]/, '-').replace(/[\*\. ]$/, '-');
-    if (!onWindows) {
-      return unixCleanedName;
-    }
-    return unixCleanedName.replace(/[<>:|?*\\]/g, "-");
+    return name.replace(/[:"?<>|*\/\\]/g, '-').replace(/^[\.]/, '-').replace(/[\.]$/, '-');
   }
 
   /**
