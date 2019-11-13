@@ -219,6 +219,9 @@ class NauticaDownloader {
     }
   }
 
+  /**
+   * Creates the error logging file.
+   */
   createErrorLog() {
     if (!fs.existsSync(ERROR_LOG))
       fs.createFileSync(ERROR_LOG);
@@ -226,6 +229,9 @@ class NauticaDownloader {
       fs.truncateSync(ERROR_LOG);
   }
 
+  /**
+   * Creates the meta storage file.
+   */
   createMeta() {
     if (!fs.existsSync(path.resolve('./nautica/meta.json')))
       this.writeMeta({
@@ -295,6 +301,9 @@ class NauticaDownloader {
     return meta.users[user.id];
   }
 
+  /**
+   * Changes a string so that it won't cause OS-specific problems.
+   */
   cleanName(name) {
     const unixCleanedName = name.replace(/[/"]/g, "-").replace(/^[\.\* ]/, '-').replace(/[\*\. ]$/, '-');
     if (!onWindows) {
@@ -320,7 +329,10 @@ class NauticaDownloader {
     meta.songDownloadTimes[songId] = moment().unix();
     this.writeMeta(meta);
   }
-  
+
+  /**
+   * Changes the zip extractor that will be used on Windows between Unar and 7zip.
+   */
   switchWindowsZipExtractor() {
     const meta = this.readMeta();
 
@@ -366,6 +378,9 @@ class NauticaDownloader {
     });
   }
 
+  /**
+   * Ensures that a directory will not just contain another directory with the actual files in it.
+   */
   flattenSongFolder(folder, songId) {
     const dirEntries = fs.readdirSync(folder, { withFileTypes: true });
     if (dirEntries.length !== 1 || !dirEntries[0].isDirectory) {
@@ -400,6 +415,9 @@ class NauticaDownloader {
     });
   }
 
+  /**
+   * Logs an error in the console and appends it to the error logging file.
+   */
   logError(message, error) {
     console.error(message);
     console.error(error);
@@ -407,10 +425,16 @@ class NauticaDownloader {
     fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
 
+  /**
+   * Get the JSON data from the meta file.
+   */
   readMeta() {
     return JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
   }
-
+  
+  /**
+   * Overwrite the JSON data from the meta file.
+   */
   writeMeta(contents) {
     fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(contents), 'utf8');
   }
