@@ -14,7 +14,8 @@ const iconv = require('iconv-lite');
 const child_process = require('child_process');
 const mkdirp = require('mkdirp');
 
-const ERROR_LOG = path.resolve('nautica/error.log');
+const ERROR_LOG_LOCATION = path.resolve('nautica/error.log');
+const META_LOCATION = path.resolve('nautica/meta.json');
 
 class NauticaDownloader {
   constructor() {
@@ -223,17 +224,17 @@ class NauticaDownloader {
    * Creates the error logging file.
    */
   createErrorLog() {
-    if (!fs.existsSync(ERROR_LOG))
-      fs.createFileSync(ERROR_LOG);
+    if (!fs.existsSync(ERROR_LOG_LOCATION))
+      fs.createFileSync(ERROR_LOG_LOCATION);
     else
-      fs.truncateSync(ERROR_LOG);
+      fs.truncateSync(ERROR_LOG_LOCATION);
   }
 
   /**
    * Creates the meta storage file.
    */
   createMeta() {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json')))
+    if (!fs.existsSync(META_LOCATION))
       this.writeMeta({
         songDownloadTimes: {},
         users: {},
@@ -421,22 +422,22 @@ class NauticaDownloader {
   logError(message, error) {
     console.error(message);
     console.error(error);
-    fs.appendFileSync(ERROR_LOG, '\r\n\r\n' + message, 'utf-8');
-    fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
+    fs.appendFileSync(ERROR_LOG_LOCATION, '\r\n\r\n' + message, 'utf-8');
+    fs.appendFileSync(ERROR_LOG_LOCATION, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
 
   /**
    * Get the JSON data from the meta file.
    */
   readMeta() {
-    return JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+    return JSON.parse(fs.readFileSync(META_LOCATION));
   }
   
   /**
    * Overwrite the JSON data from the meta file.
    */
   writeMeta(contents) {
-    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(contents), 'utf8');
+    fs.writeFileSync(META_LOCATION, JSON.stringify(contents), 'utf8');
   }
 }
 
