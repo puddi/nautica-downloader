@@ -16,7 +16,6 @@ const mkdirp = require('mkdirp');
 
 const ERROR_LOG = path.resolve('nautica/error.log');
 
-// TODO: put exe crap in nautica folder
 // TODO: make methods for write to meta and read from meta
 
 class NauticaDownloader {
@@ -232,25 +231,29 @@ class NauticaDownloader {
    * Copies the Unar file.
    */
   copyZipExtractor() {
+    if (!fs.existsSync(path.resolve('./nautica'))) {
+      this.logError('nautica directory does not exist');
+      return;
+    }
     if (onWindows) {
-      if (!fs.existsSync(path.resolve('./7za.exe'))) {
+      if (!fs.existsSync(path.resolve('./nautica/7za.exe'))) {
         console.log('Writing files for extracting zips...');
-        fs.writeFileSync(path.resolve('./7za.exe'), fs.readFileSync(path.join(__dirname, './assets/7za.exe')));
-        fs.chmodSync(path.resolve('./7za.exe'), "755");
+        fs.writeFileSync(path.resolve('./nautica/7za.exe'), fs.readFileSync(path.join(__dirname, './assets/7za.exe')));
+        fs.chmodSync(path.resolve('./nautica/7za.exe'), "755");
       }
-      if (!fs.existsSync(path.resolve('./unar.exe'))) {
-        fs.writeFileSync(path.resolve('./unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
-        fs.chmodSync(path.resolve('./unar.exe'), "755");
+      if (!fs.existsSync(path.resolve('./nautica/unar.exe'))) {
+        fs.writeFileSync(path.resolve('./nautica/unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
+        fs.chmodSync(path.resolve('./nautica/unar.exe'), "755");
       }
-      if (!fs.existsSync(path.resolve('./Foundation.1.0.dll'))) {
-        fs.writeFileSync(path.resolve('./Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));	
-        fs.chmodSync(path.resolve('./Foundation.1.0.dll'), "755");	
+      if (!fs.existsSync(path.resolve('./nautica/Foundation.1.0.dll'))) {
+        fs.writeFileSync(path.resolve('./nautica/Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));	
+        fs.chmodSync(path.resolve('./nautica/Foundation.1.0.dll'), "755");	
       }
     } else {
-      if (!fs.existsSync(path.resolve('./unar'))) {
+      if (!fs.existsSync(path.resolve('./nautica/unar'))) {
         console.log('Writing files for extracting zips...');
-        fs.writeFileSync(path.resolve('./unar'), fs.readFileSync(path.join(__dirname, './assets/unar')));
-        fs.chmodSync(path.resolve('./unar'), "755");
+        fs.writeFileSync(path.resolve('./nautica/unar'), fs.readFileSync(path.join(__dirname, './assets/unar')));
+        fs.chmodSync(path.resolve('./nautica/unar'), "755");
       }
     }
   }
@@ -359,13 +362,13 @@ class NauticaDownloader {
       }
       
       if (onWindows && meta.windowsZipExtractor === '7zip') {
-          const sevenZipPath = path.resolve('./7za.exe');
+          const sevenZipPath = path.resolve('./nautica/7za.exe');
           child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
             cwd: basePath,
             windowsHide: true,
           }, extractResultCallback);
       } else {
-        const unarPath = onWindows ? path.resolve('./unar.exe') : path.resolve('./unar');
+        const unarPath = onWindows ? path.resolve('./nautica/unar.exe') : path.resolve('./nautica/unar');
         child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
           cwd: basePath,
           windowsHide: true,
