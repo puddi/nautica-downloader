@@ -16,7 +16,6 @@ const mkdirp = require('mkdirp');
 
 const ERROR_LOG = path.resolve('nautica/error.log');
 
-// TODO: rename to extractOr
 // TODO: put exe crap in nautica folder
 // TODO: make methods for write to meta and read from meta
 
@@ -24,7 +23,7 @@ class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
     this.createErrorLog();
-    this.copyZipExtracter();
+    this.copyZipExtractor();
   }
 
   /**
@@ -232,7 +231,7 @@ class NauticaDownloader {
   /**
    * Copies the Unar file.
    */
-  copyZipExtracter() {
+  copyZipExtractor() {
     if (onWindows) {
       if (!fs.existsSync(path.resolve('./7za.exe'))) {
         console.log('Writing files for extracting zips...');
@@ -353,13 +352,13 @@ class NauticaDownloader {
       let meta;
       if (onWindows) {
         meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-        if (!meta.windowsZipExtracter) {
-          meta.windowsZipExtracter = '7zip';
+        if (!meta.windowsZipExtractor) {
+          meta.windowsZipExtractor = '7zip';
           fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
         }
       }
       
-      if (onWindows && meta.windowsZipExtracter === '7zip') {
+      if (onWindows && meta.windowsZipExtractor === '7zip') {
           const sevenZipPath = path.resolve('./7za.exe');
           child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
             cwd: basePath,
@@ -416,19 +415,19 @@ class NauticaDownloader {
     fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
 
-  switchWindowsZipExtracter() {
+  switchWindowsZipExtractor() {
     const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
 
-    if (!meta.windowsZipExtracter) {
+    if (!meta.windowsZipExtractor) {
       console.log('Please run the script normally first');
       return;
     }
 
-    if (meta.windowsZipExtracter === '7zip') {
-      meta.windowsZipExtracter = 'unar';
+    if (meta.windowsZipExtractor === '7zip') {
+      meta.windowsZipExtractor = 'unar';
       console.log('Now using unar for extracting files on windows');
     } else {
-      meta.windowsZipExtracter = '7zip';
+      meta.windowsZipExtractor = '7zip';
       console.log('Now using 7zip for extracting files on windows');
     }
     
@@ -440,8 +439,8 @@ downloader = new NauticaDownloader();
 
 const args = minimist(process.argv.slice(2));
 
-if (args['switch-windows-zip-extracter']) {
-  downloader.switchWindowsZipExtracter();
+if (args['switch-windows-zip-extractor']) {
+  downloader.switchWindowsZipExtractor();
   return;
 }
 

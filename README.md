@@ -20,7 +20,7 @@ You can skip the `npm install` step and replace `node nautica-downloader.js` wit
   * Downloads a specific song.
 * `--continue`
   * nautica-downloader keeps track of the last time a song was downloaded. By default, nautica-downloader stops execution after 5 consecutive songs are already marked as downloaded. To force the script to continue checking songs, pass along the continue flag.
-* `--switch-windows-zip-extracter`
+* `--switch-windows-zip-extractor`
   * Switches between 7zip and Unar if you're on Windows.
 
 ## Zip Encoding
