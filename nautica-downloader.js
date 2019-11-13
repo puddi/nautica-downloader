@@ -437,7 +437,7 @@ class NauticaDownloader {
    * Overwrite the JSON data from the meta file.
    */
   writeMeta(contents) {
-    fs.writeFileSync(META_LOCATION, JSON.stringify(contents), 'utf8');
+    fs.writeFileSync(META_LOCATION, JSON.stringify(contents, null, 2), 'utf8');
   }
 }
 
