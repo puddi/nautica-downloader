@@ -320,6 +320,20 @@ class NauticaDownloader {
     meta.songDownloadTimes[songId] = moment().unix();
     this.writeMeta(meta);
   }
+  
+  switchWindowsZipExtractor() {
+    const meta = this.readMeta();
+
+    if (meta.windowsZipExtractor === '7zip') {
+      meta.windowsZipExtractor = 'unar';
+      console.log('Now using unar for extracting files on windows');
+    } else {
+      meta.windowsZipExtractor = '7zip';
+      console.log('Now using 7zip for extracting files on windows');
+    }
+
+    this.writeMeta(meta);
+  }
 
   /**
    * Extracts the contents of a zip on disk to a path w/ sjis encoding
@@ -399,20 +413,6 @@ class NauticaDownloader {
 
   writeMeta(contents) {
     fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(contents), 'utf8');
-  }
-
-  switchWindowsZipExtractor() {
-    const meta = this.readMeta();
-
-    if (meta.windowsZipExtractor === '7zip') {
-      meta.windowsZipExtractor = 'unar';
-      console.log('Now using unar for extracting files on windows');
-    } else {
-      meta.windowsZipExtractor = '7zip';
-      console.log('Now using 7zip for extracting files on windows');
-    }
-
-    this.writeMeta(meta);
   }
 }
 
