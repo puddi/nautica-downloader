@@ -16,12 +16,11 @@ const mkdirp = require('mkdirp');
 
 const ERROR_LOG = path.resolve('nautica/error.log');
 
-// TODO: make methods for write to meta and read from meta
-
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
     this.createErrorLog();
+    this.createMeta();
     this.copyZipExtractor();
   }
 
@@ -227,6 +226,15 @@ class NauticaDownloader {
       fs.truncateSync(ERROR_LOG);
   }
 
+  createMeta() {
+    if (!fs.existsSync(path.resolve('./nautica/meta.json')))
+      this.writeMeta({
+        songDownloadTimes: {},
+        users: {},
+        windowsZipExtractor: '7zip',
+      });
+  }
+
   /**
    * Copies the Unar file.
    */
@@ -273,22 +281,14 @@ class NauticaDownloader {
    * Gets the directory name for a user. Stores it inside meta.
    */
   getUserDirectoryName(user) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({}), 'utf8');
-    }
+    const meta = this.readMeta();
 
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json'))); 
-
-    if (!meta.users || !meta.users[user.id]) {
+    if (!meta.users[user.id]) {
       console.log('New user found, adding to list of users');
-
-      if (!meta.users) {
-        meta.users = {};
-      }
 
       const userDirectoryName = this.cleanName(user.name);  
       meta.users[user.id] = userDirectoryName;
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+      this.writeMeta(meta);
       return userDirectoryName;
     }
 
@@ -308,33 +308,17 @@ class NauticaDownloader {
    * Returns null if the script was never ran before.
    */
   getWhenSongWasLastDownloaded(songId) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
-        songDownloadTimes: {}
-      }), 'utf8');
-      return null;
-    }
-
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    return meta.songDownloadTimes[songId];
+    return this.readMeta().songDownloadTimes[songId];
   }
 
   /**
    * Sets the last time this class fetched all the songs for a user.
    */
   setWhenSongWasLastDownloaded(songId) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
-        songDownloadTimes: {}
-      }), 'utf8');
-    }
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-    if (!meta.songDownloadTimes) {
-      meta.songDownloadTimes = {}
-    }
+    const meta = this.readMeta();
 
     meta.songDownloadTimes[songId] = moment().unix();
-    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+    this.writeMeta(meta);
   }
 
   /**
@@ -351,17 +335,8 @@ class NauticaDownloader {
           resolve();
         }
       }
-
-      let meta;
-      if (onWindows) {
-        meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
-        if (!meta.windowsZipExtractor) {
-          meta.windowsZipExtractor = '7zip';
-          fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
-        }
-      }
       
-      if (onWindows && meta.windowsZipExtractor === '7zip') {
+      if (onWindows && this.readMeta().windowsZipExtractor === '7zip') {
           const sevenZipPath = path.resolve('./nautica/7za.exe');
           child_process.exec(`"${sevenZipPath}" x -o"${basePath}" -aoa -r "${zipFilename}"`, {
             cwd: basePath,
@@ -418,13 +393,16 @@ class NauticaDownloader {
     fs.appendFileSync(ERROR_LOG, '\r\n' + JSON.stringify(error, null, 2), 'utf-8');
   }
 
-  switchWindowsZipExtractor() {
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+  readMeta() {
+    return JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+  }
 
-    if (!meta.windowsZipExtractor) {
-      console.log('Please run the script normally first');
-      return;
-    }
+  writeMeta(contents) {
+    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(contents), 'utf8');
+  }
+
+  switchWindowsZipExtractor() {
+    const meta = this.readMeta();
 
     if (meta.windowsZipExtractor === '7zip') {
       meta.windowsZipExtractor = 'unar';
@@ -433,8 +411,8 @@ class NauticaDownloader {
       meta.windowsZipExtractor = '7zip';
       console.log('Now using 7zip for extracting files on windows');
     }
-    
-    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+
+    this.writeMeta(meta);
   }
 }
 
