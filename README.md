@@ -20,6 +20,8 @@ You can skip the `npm install` step and replace `node nautica-downloader.js` wit
   * Downloads a specific song.
 * `--continue`
   * nautica-downloader keeps track of the last time a song was downloaded. By default, nautica-downloader stops execution after 5 consecutive songs are already marked as downloaded. To force the script to continue checking songs, pass along the continue flag.
+* `--switch-windows-zip-extractor`
+  * Switches between 7zip and Unar if you're on Windows.
 
 ## Zip Encoding
 
@@ -29,4 +31,4 @@ If this happens, K-Shoot Mania will most likely throw a Error 12 when launching 
 
 ## Build and Release
 
-Assuming that you've installed pkg (`npm install -g pkg`), just run `pkg -t node10-win-x64 nautica-downloader.js`. 
+Assuming that you've installed pkg (`npm install -g pkg`), just run `npm run compile` (or `pkg -t node10-win-x64 nautica-downloader.js`).

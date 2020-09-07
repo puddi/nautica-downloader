@@ -4,7 +4,9 @@
   "description": "downloads files from nautica",
   "main": "nautica-downloader.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node nautica-downloader.js",
+    "compile": "pkg -t node10-win-x64 nautica-downloader.js"
   },
   "author": "",
   "license": "ISC",
