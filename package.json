@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.18.1",
+    "axios": "^0.21.1",
     "chardet": "^0.7.0",
     "fs-extra": "^7.0.1",
     "iconv-lite": "^0.4.24",
